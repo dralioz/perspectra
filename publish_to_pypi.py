@@ -13,7 +13,8 @@ def run_command(command, description):
     """Run a shell command and handle errors."""
     print(f"⏳ {description}...")
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True,
+                                check=True, capture_output=True, text=True)
         print(f"✅ {description} completed successfully")
         if result.stdout:
             print(f"   Output: {result.stdout.strip()}")
@@ -28,7 +29,7 @@ def run_command(command, description):
 def check_requirements():
     """Check if all requirements are met."""
     print("🔍 Checking requirements...")
-    
+
     # Check if required files exist
     required_files = ["setup.py", "README.md", "LICENSE", "requirements.txt"]
     for file in required_files:
@@ -36,13 +37,13 @@ def check_requirements():
             print(f"❌ Required file missing: {file}")
             return False
         print(f"✅ Found: {file}")
-    
+
     # Check if perspectra_lib exists
     if not Path("perspectra_lib").exists():
         print("❌ perspectra_lib directory not found!")
         return False
     print("✅ Found: perspectra_lib/")
-    
+
     return True
 
 
@@ -59,7 +60,7 @@ def install_build_tools():
 def clean_build():
     """Clean previous build artifacts."""
     print("🧹 Cleaning previous builds...")
-    
+
     dirs_to_clean = ["build", "dist", "perspectra.egg-info"]
     for dir_name in dirs_to_clean:
         dir_path = Path(dir_name)
@@ -67,7 +68,7 @@ def clean_build():
             import shutil
             shutil.rmtree(dir_path)
             print(f"   Removed: {dir_name}/")
-    
+
     print("✅ Clean completed")
     return True
 
@@ -106,84 +107,85 @@ def main():
     """Main publishing function."""
     print("🚀 Perspectra PyPI Publishing Script")
     print("=" * 50)
-    
+
     if not check_requirements():
         print("❌ Requirements check failed!")
         return False
-    
+
     print("\nWhat would you like to do?")
     print("1. Build package only")
     print("2. Build and upload to Test PyPI")
     print("3. Build and upload to PyPI (production)")
     print("4. Install build tools only")
     print("5. Exit")
-    
+
     choice = input("\nEnter your choice (1-5): ").strip()
-    
+
     if choice == "1":
         success = True
         success &= install_build_tools()
         success &= clean_build()
         success &= build_package()
         success &= check_package()
-        
+
         if success:
             print("\n🎉 Package built successfully!")
             print("   Check the dist/ directory for the built files.")
             print("   You can now manually upload using:")
             print("     python -m twine upload --repository testpypi dist/*  # Test")
             print("     python -m twine upload dist/*                       # Production")
-        
+
         return success
-    
+
     elif choice == "2":
         success = True
         success &= install_build_tools()
         success &= clean_build()
         success &= build_package()
         success &= check_package()
-        
+
         if success:
             success &= upload_to_test_pypi()
-            
+
         if success:
             print("\n🎉 Package uploaded to Test PyPI!")
             print("   You can test install with:")
             print("     pip install -i https://test.pypi.org/simple/ perspectra")
-        
+
         return success
-    
+
     elif choice == "3":
         print("\n⚠️  WARNING: This will upload to production PyPI!")
-        confirm = input("Are you sure? Type 'yes' to continue: ").strip().lower()
-        
+        confirm = input(
+            "Are you sure? Type 'yes' to continue: ").strip().lower()
+
         if confirm != "yes":
             print("Cancelled.")
             return True
-        
+
         success = True
         success &= install_build_tools()
         success &= clean_build()
         success &= build_package()
         success &= check_package()
-        
+
         if success:
             success &= upload_to_pypi()
-            
+
         if success:
             print("\n🎉 Package uploaded to PyPI!")
             print("   Users can now install with:")
             print("     pip install perspectra")
-        
+
         return success
-    
+
     elif choice == "4":
         return install_build_tools()
-    
+
     elif choice == "5":
         print("Goodbye!")
         return True
-    
+
     else:
         print("❌ Invalid choice")
         return False

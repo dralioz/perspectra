@@ -15,7 +15,8 @@ def run_command(command, description):
     """Run a shell command and handle errors."""
     print(f"⏳ {description}...")
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True,
+                                check=True, capture_output=True, text=True)
         print(f"✅ {description} completed successfully")
         return True
     except subprocess.CalledProcessError as e:
@@ -118,7 +119,8 @@ def main():
         print("❌ Python 3.8 or higher is required!")
         return False
 
-    print(f"✅ Python version: {sys.version_info.major}.{sys.version_info.minor}")
+    print(
+        f"✅ Python version: {sys.version_info.major}.{sys.version_info.minor}")
 
     # Ask user what they want to do
     print("\nWhat would you like to do?")
@@ -135,7 +137,8 @@ def main():
     elif choice == "2":
         return create_package()
     elif choice == "3":
-        confirm = input("⚠️  This will permanently delete FastAPI files. Are you sure? (yes/no): ").strip().lower()
+        confirm = input(
+            "⚠️  This will permanently delete FastAPI files. Are you sure? (yes/no): ").strip().lower()
         if confirm == "yes":
             clean_fastapi_files()
             return True
@@ -148,7 +151,8 @@ def main():
         if success:
             success &= create_package()
         if success:
-            confirm = input("\n⚠️  Clean FastAPI files? This cannot be undone. (yes/no): ").strip().lower()
+            confirm = input(
+                "\n⚠️  Clean FastAPI files? This cannot be undone. (yes/no): ").strip().lower()
             if confirm == "yes":
                 clean_fastapi_files()
         return success
