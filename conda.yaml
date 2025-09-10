@@ -1,7 +1,0 @@
-name: perspectra
-channels:
-  - conda-forge
-  - defaults
-dependencies:
-  - python=3.11
-  - uv  # paketleri requirements.txt'ten uv ile kuracağız

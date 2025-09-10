@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include requirements.txt
+include MIGRATION_GUIDE.md
+recursive-include perspectra_lib *.py

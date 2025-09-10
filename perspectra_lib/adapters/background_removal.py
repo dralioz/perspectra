@@ -1,72 +1,89 @@
-"""Provide to remove background from images."""
+"""Background removal adapter for Perspectra library."""
 
 import io
 import logging
 import os
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from PIL import Image
 from rembg import remove
 
-from src.core.config import load_settings
+from ..core.config import PerspectraConfig
 
 
-class BackgroundRemoveAdapter:
+class BackgroundRemovalAdapter:
     """
     Adapter class to remove background from images using rembg and PIL.
     Provides detailed logging and error handling for each step.
     """
 
-    def __init__(self):
+    def __init__(self, config: Optional[PerspectraConfig] = None):
         """
-        Initializes the BackgroundRemoveAdapter and sets up the logger.
-        Ensures the model is available locally.
+        Initialize the BackgroundRemovalAdapter.
+
+        Args:
+            config: Configuration object. If None, uses default settings.
         """
-        self.logger = logging.getLogger()
-        self.settings = load_settings()
-        self.logger.info("BackgroundRemoveAdapter initializing...")
+        self.config = config or PerspectraConfig()
+
+        # Setup logging if enabled
+        if self.config.enable_logging:
+            self.logger = logging.getLogger(__name__)
+            if not self.logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                self.logger.setLevel(getattr(logging, self.config.log_level))
+        else:
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
 
         # Ensure models directory exists
         self.model_dir = Path("models")
-        self.model_path = self.model_dir / self.settings.MODEL_FILENAME
+        self.model_path = self.model_dir / self.config.model_filename
 
-        if self.settings.USE_LOCAL_MODEL:
+        if self.config.use_local_model:
             self._ensure_model_exists()
 
-        self.logger.info("BackgroundRemoveAdapter initialized successfully.")
+        self.logger.info("BackgroundRemovalAdapter initialized successfully.")
 
-    def __call__(self, image_bytes: bytes) -> np.ndarray:
+    def remove_background(self, image_bytes: bytes) -> np.ndarray:
         """
-        Removes the background from the given image bytes.
+        Remove the background from the given image bytes.
 
         Args:
-            image_bytes (bytes): The image data in bytes.
+            image_bytes: The image data in bytes.
 
         Returns:
-            np.ndarray: The image as a numpy array with background removed.
+            The image as a numpy array with background removed.
+
+        Raises:
+            Exception: If background removal fails.
         """
         try:
-            self.logger.info("Calling reload_with_pil to load image from bytes.")
-            loaded_image = self.reload_with_pil(image_bytes)
-            self.logger.info("Image loaded successfully. " "Proceeding to remove background.")
-            data = self.remove_background(loaded_image)
+            self.logger.info("Loading image from bytes.")
+            loaded_image = self._load_image_from_bytes(image_bytes)
+            self.logger.info("Image loaded successfully. Removing background.")
+            data = self._process_background_removal(loaded_image)
             self.logger.info("Background removed successfully.")
             return data
         except Exception as e:
-            self.logger.error("Error in __call__: %s", e, exc_info=True)
+            self.logger.error("Error in remove_background: %s", e, exc_info=True)
             raise
 
-    def reload_with_pil(self, image_bytes: bytes) -> Image.Image:
+    def _load_image_from_bytes(self, image_bytes: bytes) -> Image.Image:
         """
-        Loads an image from bytes using PIL.
+        Load an image from bytes using PIL.
 
         Args:
-            image_bytes (bytes): The image data in bytes.
+            image_bytes: The image data in bytes.
 
         Returns:
-            Image.Image: The loaded PIL Image object.
+            The loaded PIL Image object.
         """
         try:
             self.logger.debug("Opening image from bytes using PIL.")
@@ -89,24 +106,27 @@ class BackgroundRemoveAdapter:
         # Check if model file exists
         if not self.model_path.exists():
             try:
+                self.logger.info("Downloading model from %s", self.config.model_url)
                 # Using wget command for downloading
                 subprocess.run(
-                    ["wget", "-O", str(self.model_path), self.settings.MODEL_URL], check=True, capture_output=True
+                    ["wget", "-O", str(self.model_path), self.config.model_url],
+                    check=True,
+                    capture_output=True
                 )
                 self.logger.info("Model downloaded successfully.")
             except subprocess.CalledProcessError as e:
                 self.logger.error("Failed to download model: %s", e.stderr)
                 raise RuntimeError("Model download failed") from e
 
-    def remove_background(self, image: Image.Image) -> np.ndarray:
+    def _process_background_removal(self, image: Image.Image) -> np.ndarray:
         """
-        Removes the background from a PIL Image and returns a numpy array.
+        Remove the background from a PIL Image and return a numpy array.
 
         Args:
-            image (Image.Image): The PIL Image object.
+            image: The PIL Image object.
 
         Returns:
-            np.ndarray: The image as a numpy array with background removed.
+            The image as a numpy array with background removed.
         """
         try:
             self.logger.info("Extracting EXIF and ICC profile from image.")
@@ -114,14 +134,15 @@ class BackgroundRemoveAdapter:
             icc = image.info.get("icc_profile")
 
             # Configure model path if using local model
-            if self.settings.USE_LOCAL_MODEL:
+            if self.config.use_local_model:
                 os.environ["U2NET_HOME"] = str(self.model_dir)
 
             with io.BytesIO() as buffer:
                 self.logger.info("Saving image to buffer in BMP format.")
                 image.save(buffer, format="BMP", exif=exif, icc_profile=icc)
                 self.logger.info("Removing background using rembg.")
-                output_image = remove(buffer.getvalue(), only_mask=self.settings.IS_ONLY_MASK)
+                output_image = remove(buffer.getvalue(), only_mask=self.config.is_only_mask)
+
             self.logger.info("Opening processed image and converting to RGB.")
             image_rgb = Image.open(io.BytesIO(output_image)).convert("RGB")
             data = np.array(image_rgb)
