@@ -1,0 +1,10 @@
+[run]
+relative_files = True
+branch = True
+source =
+    src
+    tests
+
+[paths]
+source = 
+    src

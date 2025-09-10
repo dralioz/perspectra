@@ -1,0 +1,14 @@
+FROM python:3.11-bookworm
+USER root
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY ./ .
+RUN pip install uv \
+    && uv pip install -e . --system -v \
+    && uv pip install -r dev-requirements.txt --system -v
+EXPOSE 5000 5678
+CMD ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client", "src/main.py"]
