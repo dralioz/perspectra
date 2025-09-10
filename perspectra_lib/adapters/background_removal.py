@@ -34,7 +34,8 @@ class BackgroundRemovalAdapter:
             self.logger = logging.getLogger(__name__)
             if not self.logger.handlers:
                 handler = logging.StreamHandler()
-                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
                 handler.setFormatter(formatter)
                 self.logger.addHandler(handler)
                 self.logger.setLevel(getattr(logging, self.config.log_level))
@@ -72,7 +73,8 @@ class BackgroundRemovalAdapter:
             self.logger.info("Background removed successfully.")
             return data
         except Exception as e:
-            self.logger.error("Error in remove_background: %s", e, exc_info=True)
+            self.logger.error(
+                "Error in remove_background: %s", e, exc_info=True)
             raise
 
     def _load_image_from_bytes(self, image_bytes: bytes) -> Image.Image:
@@ -91,7 +93,8 @@ class BackgroundRemovalAdapter:
             self.logger.debug("Image opened successfully.")
             return input_image
         except Exception as e:
-            self.logger.error("Error loading image with PIL: %s", e, exc_info=True)
+            self.logger.error(
+                "Error loading image with PIL: %s", e, exc_info=True)
             raise
 
     def _ensure_model_exists(self):
@@ -106,17 +109,33 @@ class BackgroundRemovalAdapter:
         # Check if model file exists
         if not self.model_path.exists():
             try:
-                self.logger.info("Downloading model from %s", self.config.model_url)
-                # Using wget command for downloading
-                subprocess.run(
-                    ["wget", "-O", str(self.model_path), self.config.model_url],
-                    check=True,
-                    capture_output=True
-                )
+                self.logger.info("Downloading model from %s",
+                                 self.config.model_url)
+                # Try curl first (macOS/Linux), then wget as fallback
+                try:
+                    subprocess.run(
+                        ["curl", "-L", "-o",
+                            str(self.model_path), self.config.model_url],
+                        check=True,
+                        capture_output=True
+                    )
+                except FileNotFoundError:
+                    # Fallback to wget if curl is not available
+                    subprocess.run(
+                        ["wget", "-O", str(self.model_path),
+                         self.config.model_url],
+                        check=True,
+                        capture_output=True
+                    )
                 self.logger.info("Model downloaded successfully.")
             except subprocess.CalledProcessError as e:
                 self.logger.error("Failed to download model: %s", e.stderr)
                 raise RuntimeError("Model download failed") from e
+            except FileNotFoundError as e:
+                self.logger.error(
+                    "Neither curl nor wget found for downloading model")
+                raise RuntimeError(
+                    "No download tool available (curl/wget)") from e
 
     def _process_background_removal(self, image: Image.Image) -> np.ndarray:
         """
@@ -141,7 +160,8 @@ class BackgroundRemovalAdapter:
                 self.logger.info("Saving image to buffer in BMP format.")
                 image.save(buffer, format="BMP", exif=exif, icc_profile=icc)
                 self.logger.info("Removing background using rembg.")
-                output_image = remove(buffer.getvalue(), only_mask=self.config.is_only_mask)
+                output_image = remove(
+                    buffer.getvalue(), only_mask=self.config.is_only_mask)
 
             self.logger.info("Opening processed image and converting to RGB.")
             image_rgb = Image.open(io.BytesIO(output_image)).convert("RGB")
@@ -149,5 +169,6 @@ class BackgroundRemovalAdapter:
             self.logger.info("Image converted to numpy array successfully.")
             return data
         except Exception as e:
-            self.logger.error("Error removing background: %s", e, exc_info=True)
+            self.logger.error(
+                "Error removing background: %s", e, exc_info=True)
             raise
