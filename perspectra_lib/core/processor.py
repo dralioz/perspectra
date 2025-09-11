@@ -10,6 +10,8 @@ import numpy as np
 
 from .config import PerspectraConfig
 from ..adapters.background_removal import BackgroundRemovalAdapter
+from ..adapters.ultrafast_background_removal import UltraFastBackgroundRemovalAdapter
+from ..adapters.optimized_background_removal import OptimizedBackgroundRemovalAdapter
 from ..adapters.perspective_correction import PerspectiveCorrectionAdapter
 
 
@@ -37,7 +39,8 @@ class PerspectraProcessor:
             self.logger = logging.getLogger(__name__)
             if not self.logger.handlers:
                 handler = logging.StreamHandler()
-                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
                 handler.setFormatter(formatter)
                 self.logger.addHandler(handler)
                 self.logger.setLevel(getattr(logging, self.config.log_level))
@@ -45,8 +48,14 @@ class PerspectraProcessor:
             self.logger = logging.getLogger(__name__)
             self.logger.disabled = True
 
-        # Initialize adapters
-        self.bg_remover = BackgroundRemovalAdapter(config)
+        # Initialize adapters based on configuration
+        if hasattr(config, 'use_ultrafast') and config.use_ultrafast:
+            self.bg_remover = UltraFastBackgroundRemovalAdapter(config)
+        elif hasattr(config, 'use_optimized') and config.use_optimized:
+            self.bg_remover = OptimizedBackgroundRemovalAdapter(config)
+        else:
+            self.bg_remover = BackgroundRemovalAdapter(config)
+
         self.perspective_corrector = PerspectiveCorrectionAdapter(config)
 
         self.logger.info("PerspectraProcessor initialized successfully.")
@@ -83,14 +92,16 @@ class PerspectraProcessor:
             self.logger.info("Perspective correction completed successfully.")
 
             duration = time.time() - start_time
-            self.logger.info("Image processing completed in %.2f seconds.", duration)
+            self.logger.info(
+                "Image processing completed in %.2f seconds.", duration)
 
             return True, "", transformed_image, duration
 
         except Exception as e:
             duration = time.time() - start_time
             error_message = str(e)
-            self.logger.error("Error processing image: %s", error_message, exc_info=True)
+            self.logger.error("Error processing image: %s",
+                              error_message, exc_info=True)
             return False, error_message, None, duration
 
     def process_image_to_base64(self, image_bytes: bytes) -> Tuple[bool, str, str, float]:
@@ -107,7 +118,8 @@ class PerspectraProcessor:
             - result_base64: Processed image as base64 string, empty string if failed
             - duration: Processing time in seconds
         """
-        success, error_message, result_image, duration = self.process_image(image_bytes)
+        success, error_message, result_image, duration = self.process_image(
+            image_bytes)
 
         if success and result_image is not None:
             try:
@@ -159,7 +171,8 @@ class PerspectraProcessor:
             - error_message: Error message if processing failed, empty string if successful
             - duration: Processing time in seconds
         """
-        success, error_message, result_image, duration = self.process_image_from_file(image_path)
+        success, error_message, result_image, duration = self.process_image_from_file(
+            image_path)
 
         if success and result_image is not None:
             try:
