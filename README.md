@@ -8,12 +8,17 @@
 
 ## 🚀 Performance Highlights
 
-| Method | Speed | Use Case | Quality |
-|--------|-------|----------|---------|
-| **Threshold** | 5ms | Clean documents | ⭐⭐⭐ |
-| **Watershed** | 13ms | Mixed backgrounds | ⭐⭐⭐⭐ |
-| **GrabCut** | 317ms | Complex images | ⭐⭐⭐⭐⭐ |
-| U²-Net | 1000ms+ | Research/High accuracy | ⭐⭐⭐⭐⭐ |
+| Method | Speed | Use Case | Quality | License |
+|--------|-------|----------|---------|---------|
+| **Watershed** | 9ms | Mixed backgrounds | ⭐⭐⭐⭐ | ✅ Apache 2.0 |
+| **Threshold** | 104ms | Clean documents | ⭐⭐⭐ | ✅ Apache 2.0 |
+| **GrabCut** | 236ms | Complex images | ⭐⭐⭐⭐⭐ | ✅ Apache 2.0 |
+| **U²-Net Lite** | 831ms | Balanced quality | ⭐⭐⭐⭐ | ⚠️ Check model |
+| **U²-Net** | 971ms | Research/High accuracy | ⭐⭐⭐⭐⭐ | ⚠️ Check model |
+| **Silueta** | 819ms | Object-focused | ⭐⭐⭐⭐ | ⚠️ Check model |
+
+✅ = Fully license-safe for commercial use  
+⚠️ = Check model license requirements
 
 This library provides easy-to-use tools for processing images by removing backgrounds and correcting perspective distortions.
 
@@ -31,45 +36,49 @@ This library provides easy-to-use tools for processing images by removing backgr
 pip install perspectra
 ```
 
-## ⚡ Quick Start - Ultra-Fast Mode
+## ⚡ Quick Start - Choose Your Method
 
-### 🏃‍♂️ Fastest Setup (5ms processing)
+### � Simple Method Selection
 
 ```python
 from perspectra_lib import PerspectraProcessor, PerspectraConfig
 
-# Ultra-fast configuration for documents
-config = PerspectraConfig(
-    use_ultrafast=True,      # Enable ultra-fast mode  
-    fast_method="threshold", # Fastest method (5ms)
-    enable_logging=False     # Disable logging for speed
-)
+# 🏃‍♂️ FASTEST - Real-time apps (9ms)
+config = PerspectraConfig(background_method="watershed")
+
+# 📄 DOCUMENTS - Clean backgrounds (104ms)  
+config = PerspectraConfig(background_method="threshold")
+
+# 🔥 HIGH QUALITY - Complex images (236ms)
+config = PerspectraConfig(background_method="grabcut")
+
+# 🧪 RESEARCH - Maximum accuracy (971ms)
+config = PerspectraConfig(background_method="u2net")
+
+# ⚖️ BALANCED - Good speed + quality (831ms)
+config = PerspectraConfig(background_method="u2net_lite")
 
 processor = PerspectraProcessor(config)
 
-# Process image - takes only ~5ms! 
+# Process image
 success, error_msg, result_image, duration = processor.process_image_from_file("document.jpg")
 
 if success:
-    print(f"✅ Completed in {duration*1000:.1f}ms")  # ~5ms!
+    print(f"✅ Completed in {duration*1000:.1f}ms")
+    processor.save_processed_image("input.jpg", "output.jpg")
 else:
     print(f"❌ Error: {error_msg}")
-
-# Save result
-processor.save_processed_image("input.jpg", "output.jpg")
 ```
 
-### 🎯 Choose Your Speed vs Quality
+### �️ Legacy Configuration (Still Supported)
 
 ```python
-# 🏃‍♂️ FASTEST - Documents (5ms)
-config = PerspectraConfig(use_ultrafast=True, fast_method="threshold")
-
-# ⚡ BALANCED - Mixed images (13ms)  
-config = PerspectraConfig(use_ultrafast=True, fast_method="watershed")
-
-# 🔥 HIGH QUALITY - Complex scenes (300ms)
-config = PerspectraConfig(use_ultrafast=True, fast_method="grabcut")
+# Old way - still works for backward compatibility
+config = PerspectraConfig(
+    use_ultrafast=True,      # Enable ultra-fast mode  
+    fast_method="threshold", # Specific ultra-fast method
+    enable_logging=False     # Disable logging for speed
+)
 ```
 
 ### Advanced Configuration

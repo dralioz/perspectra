@@ -44,7 +44,9 @@ class PerspectraConfig:
     is_only_mask: bool = False
     background_color: str = "white"  # "white", "transparent", or hex color
 
-    # Performance mode selection
+    # Background removal method selection
+    # Main method: u2net, u2net_lite, silueta, watershed, threshold, grabcut
+    background_method: str = "u2net"
     use_ultrafast: bool = False  # Use OpenCV-based ultra-fast methods (1-10ms)
     use_optimized: bool = False  # Use optimized ONNX inference (100-500ms)
     # threshold, watershed, grabcut (for ultrafast)

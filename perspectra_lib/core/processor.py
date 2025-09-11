@@ -48,15 +48,42 @@ class PerspectraProcessor:
             self.logger = logging.getLogger(__name__)
             self.logger.disabled = True
 
-        # Initialize adapters based on configuration
-        if hasattr(config, 'use_ultrafast') and config.use_ultrafast:
+        # Initialize adapters based on background_method
+        self._initialize_background_adapter(config)
+        self.perspective_corrector = PerspectiveCorrectionAdapter(config)
+
+    def _initialize_background_adapter(self, config):
+        """Initialize background removal adapter based on method selection."""
+        method = config.background_method.lower() if config else "u2net"
+
+        # OpenCV-based methods (ultra-fast)
+        if method in ["watershed", "threshold", "grabcut"]:
+            config.use_ultrafast = True
+            config.fast_method = method
             self.bg_remover = UltraFastBackgroundRemovalAdapter(config)
+            self.logger.info(f"Using ultra-fast method: {method}")
+
+        # Deep learning models
+        elif method in ["u2net", "u2net_lite", "silueta"]:
+            config.model_type = method
+            if hasattr(config, 'use_optimized') and config.use_optimized:
+                self.bg_remover = OptimizedBackgroundRemovalAdapter(config)
+                self.logger.info(f"Using optimized model: {method}")
+            else:
+                self.bg_remover = BackgroundRemovalAdapter(config)
+                self.logger.info(f"Using standard model: {method}")
+
+        # Legacy compatibility
+        elif hasattr(config, 'use_ultrafast') and config.use_ultrafast:
+            self.bg_remover = UltraFastBackgroundRemovalAdapter(config)
+            self.logger.info(f"Using ultra-fast method: {config.fast_method}")
         elif hasattr(config, 'use_optimized') and config.use_optimized:
             self.bg_remover = OptimizedBackgroundRemovalAdapter(config)
+            self.logger.info("Using optimized background removal")
         else:
+            # Default fallback
             self.bg_remover = BackgroundRemovalAdapter(config)
-
-        self.perspective_corrector = PerspectiveCorrectionAdapter(config)
+            self.logger.info("Using standard background removal")
 
         self.logger.info("PerspectraProcessor initialized successfully.")
 
